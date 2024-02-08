@@ -1,26 +1,48 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import axios from 'axios'; // Make sure to install axios in your extension project
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+    console.log('Extension is now active!');
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "seanpilot" is now active!');
+    const provider = vscode.languages.registerInlineCompletionItemProvider(
+        { pattern: '**' }, // This pattern applies to all files, adjust as necessary
+        {
+            async provideInlineCompletionItems(
+                document: vscode.TextDocument,
+                position: vscode.Position,
+                context: vscode.InlineCompletionContext,
+                token: vscode.CancellationToken
+            ): Promise<vscode.InlineCompletionList> { // Changed to async function
+                const codeBeforeCursor = document.getText(new vscode.Range(new vscode.Position(0, 0), position));
+                
+                try {
+                    // Make the HTTP request to your Flask server
+                    const response = await axios.post('http://localhost:5000/completion', {
+                        code_context: codeBeforeCursor
+                    });
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('seanpilot.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from seanpilot!');
-	});
+                    // Use the completion returned by your server
+                    const completionText = response.data.completion;
+                    console.log(completionText)
+                    const inlineCompletionItem = new vscode.InlineCompletionItem(
+                        completionText,
+                        new vscode.Range(position, position)
+                    );
 
-	context.subscriptions.push(disposable);
+                    return {
+                        items: [inlineCompletionItem],
+                    };
+                } catch (error) {
+                    console.error('Error fetching completion:', error);
+                    return { items: [] };
+                }
+            }
+        }
+    );
+
+    context.subscriptions.push(provider);
 }
 
-// This method is called when your extension is deactivated
 export function deactivate() {}
