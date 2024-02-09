@@ -25,7 +25,7 @@ export function activate(context: vscode.ExtensionContext) {
 
                     // Use the completion returned by your server
                     const completionText = response.data.completion;
-                    console.log(completionText)
+                    console.log('new completion: ', completionText);
                     const inlineCompletionItem = new vscode.InlineCompletionItem(
                         completionText,
                         new vscode.Range(position, position)
